@@ -9,6 +9,7 @@ from easydict import EasyDict
 import pprint
 import jsonlines
 import random
+import einops
 
 import torch
 import torch.nn as nn
@@ -26,24 +27,85 @@ from optim.misc import build_optimizer
 
 from parser import load_parser, parse_with_config
 
-from model.obj_encoder import PcdObjEncoder
-from model.referit3d_net import get_mlp_head
+# from model.obj_encoder import PcdObjEncoder
+# from model.referit3d_net import get_mlp_head
 
-class PcdClassifier(nn.Module):
-    def __init__(self, config):
+from model.backbone.point_net_pp import PointNetPP
+from model.basic_modules import (_get_clones, calc_pairwise_locs,
+                                        get_mlp_head, init_weights, get_mixup_function)
+# SCAN_FAMILY_BASE = "/home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily"
+# class PcdClassifier(nn.Module):
+#     def __init__(self, config):
+#         super().__init__()
+#         self.obj_encoder = PcdObjEncoder(config.obj_encoder)
+#         self.obj3d_clf_pre_head = get_mlp_head(
+#             config.hidden_size, config.hidden_size, 
+#             config.num_obj_classes, dropout=config.dropout
+#         )
+    
+#     def forward(self, obj_pcds):
+#         obj_embeds = self.obj_encoder.pcd_net(obj_pcds)
+#         obj_embeds = self.obj_encoder.dropout(obj_embeds)
+#         logits = self.obj3d_clf_pre_head(obj_embeds)
+#         return logits
+
+class PointTokenizeEncoder(nn.Module):
+    def __init__(self, backbone='pointnet++', hidden_size=768, path=None, freeze_feature=False,
+                num_attention_heads=12, spatial_dim=5, num_layers=4, dim_loc=6, pairwise_rel_type='center',
+                mixup_strategy=None, mixup_stage1=None, mixup_stage2=None):
         super().__init__()
-        self.obj_encoder = PcdObjEncoder(config.obj_encoder)
-        self.obj3d_clf_pre_head = get_mlp_head(
-            config.hidden_size, config.hidden_size, 
-            config.num_obj_classes, dropout=config.dropout
-        )
+        assert backbone in ['pointnet++', 'pointnext']
+        
+        # build backbone
+        if backbone == 'pointnet++':
+            self.point_feature_extractor = PointNetPP(
+                sa_n_points=[32, 16, None],
+                sa_n_samples=[32, 32, None],
+                sa_radii=[0.2, 0.4, None],
+                sa_mlps=[[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]],
+                # sa_mlps=[[11, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]],
+            )
+        elif backbone == 'pointnext':
+            self.point_feature_extractor = PointNext()
+                      
+        # build cls head
+        self.point_cls_head = get_mlp_head(hidden_size, hidden_size, 607, dropout=0.0)
+        self.dropout = nn.Dropout(0.1) 
+        
+        # freeze feature
+        self.freeze_feature = freeze_feature
+        if freeze_feature:
+            for p in self.parameters():
+                p.requires_grad = False
+        # load weights
+        self.apply(init_weights)
+        if path is not None:
+            self.load_state_dict(torch.load(path), strict=False)
+            print('finish load backbone')
+        
+    
+    def freeze_bn(self, m):
+        for layer in m.modules():
+            if isinstance(layer, nn.BatchNorm2d):
+                layer.eval()
     
     def forward(self, obj_pcds):
-        obj_embeds = self.obj_encoder.pcd_net(obj_pcds)
-        obj_embeds = self.obj_encoder.dropout(obj_embeds)
-        logits = self.obj3d_clf_pre_head(obj_embeds)
-        return logits
-
+        if self.freeze_feature:
+            self.freeze_bn(self.point_feature_extractor)
+        
+        # get obj_embdes
+        batch_size, _, _ = obj_pcds.size()
+        obj_embeds = self.point_feature_extractor(obj_pcds)
+        obj_embeds = einops.rearrange(obj_embeds, '(b o) d -> b o d', b=batch_size)
+        obj_embeds = self.dropout(obj_embeds)
+        if self.freeze_feature:
+            obj_embeds = obj_embeds.detach()
+            
+        # get semantic cls embeds
+        obj_sem_cls = self.point_cls_head(obj_embeds) # B, O, 607
+        obj_sem_cls = einops.rearrange(obj_sem_cls, 'b o d -> (b o) d')
+        
+        return obj_sem_cls
 
 class PcdDataset(Dataset):
     def __init__(
@@ -73,8 +135,17 @@ class PcdDataset(Dataset):
         self.data = []
         for scan_id in self.scan_ids:
             pcds, colors, _, instance_labels = torch.load(
-                os.path.join(self.scan_dir, 'pcd_with_global_alignment', '%s.pth'%scan_id)
+                os.path.join(self.scan_dir, 'pcd_with_global_alignment', '%s.pth'%scan_id), weights_only=False
             )
+            # pcd_data = torch.load(os.path.join(self.scan_dir, 'pcd_with_features', '%s.pth'%scan_id), weights_only=False)
+            # pcds, colors, features, instance_labels = pcd_data[0], pcd_data[1], pcd_data[2], pcd_data[-1]
+
+            # non_nan_inds = np.where(~np.isnan(pcds[:, 0]))[0]
+            # pcds = pcds[non_nan_inds]
+            # colors = colors[non_nan_inds]
+            # features = features[non_nan_inds]
+            # instance_labels = instance_labels[non_nan_inds]
+            
             obj_labels = json.load(open(
                 os.path.join(self.scan_dir, 'instance_id_to_name', '%s.json'%scan_id)
             ))
@@ -83,8 +154,15 @@ class PcdDataset(Dataset):
                     continue
                 mask = instance_labels == i 
                 assert np.sum(mask) > 0, 'scan: %s, obj %d' %(scan_id, i)
+                # if mask.any():
                 obj_pcd = pcds[mask]
                 obj_color = colors[mask]
+                    # obj_features = features[mask]
+                # else:
+                #     obj_pcd = np.zeros((1, pcds.shape[1]), dtype=pcds.dtype)
+                #     obj_color = np.zeros((1, colors.shape[1]), dtype=colors.dtype)
+                #     obj_features = np.zeros((1, features.shape[1]), dtype=features.dtype)  
+
                 # normalize
                 obj_pcd = obj_pcd - obj_pcd.mean(0)
                 max_dist = np.max(np.sqrt(np.sum(obj_pcd**2, 1)))
@@ -125,7 +203,7 @@ class PcdDataset(Dataset):
         obj_pcds = self._get_augmented_pcd(full_obj_pcds, theta=theta)
             
         outs = {
-            'obj_pcds': torch.from_numpy(obj_pcds),
+            'obj_pcds': torch.from_numpy(obj_pcds).float(),
             'obj_labels': obj_label,
         }
         return outs
@@ -169,7 +247,7 @@ def main(opts):
 
     # Prepare model
     model_config = EasyDict(opts.model)
-    model = PcdClassifier(model_config)
+    model = PointTokenizeEncoder()
     model = wrap_model(model, device, opts.local_rank)
 
     num_weights, num_trainable_weights = 0, 0

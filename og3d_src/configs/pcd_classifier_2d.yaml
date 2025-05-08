@@ -1,4 +1,4 @@
-output_dir: /home/noidvan/projects/def-hugh/noidvan/logs/exp3d_vista
+output_dir: /home/noidvan/projects/def-hugh/noidvan/logs
 resume_file: null
 
 world_size: 1
@@ -16,7 +16,7 @@ lr_decay: cosine
 betas: [0.9, 0.98]
 warmup_steps: 1000
 grad_norm: 5.0
-num_workers: 4
+num_workers: 8
 val_every_epoch: 1
 
 model:
@@ -27,7 +27,8 @@ model:
     sa_n_points: [32, 16, null]
     sa_n_samples: [32, 32, null]
     sa_radii: [0.2, 0.4, null]
-    sa_mlps: [[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
+    # sa_mlps: [[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
+    sa_mlps: [[11, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
     # sa_mlps: [[0, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
     dropout: 0.1
 
