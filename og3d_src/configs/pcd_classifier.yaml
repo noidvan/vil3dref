@@ -1,4 +1,4 @@
-output_dir: /home/noidvan/projects/def-hugh/noidvan/logs/exp3d_vista
+output_dir: /home/noidvan/projects/def-hugh/noidvan/logs/exp2d_3r
 resume_file: null
 
 world_size: 1
@@ -7,7 +7,7 @@ local_rank: -1
 rank: -1
 
 seed: 0
-num_epoch: 100
+num_epoch: 200
 batch_size: 16
 weight_decay: 0.01
 optim: adamw
@@ -33,6 +33,7 @@ model:
 
 dataset:
   scan_dir: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/scan_data
+  rscan_dir: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/3rscan
   category_file:  /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/meta_data/scannetv2_raw_categories.json
   cat2vec_file: null
   # cat2vec_file: ../datasets/referit3d/annotations/meta_data/cat2glove42b.json

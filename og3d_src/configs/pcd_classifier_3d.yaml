@@ -1,4 +1,4 @@
-output_dir: /home/noidvan/projects/def-hugh/noidvan/logs
+output_dir: /home/noidvan/projects/def-hugh/noidvan/logs/exp3d_3r
 resume_file: null
 
 world_size: 1
@@ -7,7 +7,7 @@ local_rank: -1
 rank: -1
 
 seed: 0
-num_epoch: 100
+num_epoch: 200
 batch_size: 16
 weight_decay: 0.01
 optim: adamw
@@ -16,7 +16,7 @@ lr_decay: cosine
 betas: [0.9, 0.98]
 warmup_steps: 1000
 grad_norm: 5.0
-num_workers: 8
+num_workers: 4
 val_every_epoch: 1
 
 model:
@@ -27,13 +27,13 @@ model:
     sa_n_points: [32, 16, null]
     sa_n_samples: [32, 32, null]
     sa_radii: [0.2, 0.4, null]
-    # sa_mlps: [[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
-    sa_mlps: [[11, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
+    sa_mlps: [[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
     # sa_mlps: [[0, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
     dropout: 0.1
 
 dataset:
   scan_dir: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/scan_data
+  rscan_dir: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/3rscan
   category_file:  /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/meta_data/scannetv2_raw_categories.json
   cat2vec_file: null
   # cat2vec_file: ../datasets/referit3d/annotations/meta_data/cat2glove42b.json

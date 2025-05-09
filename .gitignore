@@ -14,3 +14,6 @@ logs/
 #/notebooks
 /og3d_src/model/external_tools/pointnet2/build
 /og3d_src/model/external_tools/pointnet2/dist
+
+*.out
+*.err

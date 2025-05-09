@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --gres=gpu:a100:1
+#SBATCH --cpus-per-task=8
+#SBATCH --time=3:00:00
+#SBATCH --mem=50G
+#SBATCH --mail-user=i.lin@mail.utoronto.ca
+#SBATCH --mail-type=ALL
+#
+module load cuda
+module load python/3.11
+module load scipy-stack
+source /home/noidvan/projects/def-hugh/noidvan/venvs/3dvista/bin/activate
+
+cd /home/noidvan/projects/def-hugh/noidvan/vil3dref/og3d_src
+export WANDB_MODE=offline
+python3 train_pcd_backbone.py --config configs/pcd_classifier.yaml

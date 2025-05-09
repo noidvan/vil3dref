@@ -62,8 +62,8 @@ class PointTokenizeEncoder(nn.Module):
                 sa_n_points=[32, 16, None],
                 sa_n_samples=[32, 32, None],
                 sa_radii=[0.2, 0.4, None],
-                # sa_mlps=[[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]],
-                sa_mlps=[[11, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]],
+                sa_mlps=[[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]],
+                # sa_mlps=[[11, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]],
             )
         elif backbone == 'pointnext':
             self.point_feature_extractor = PointNext()
@@ -169,7 +169,7 @@ class PcdDataset(Dataset):
                 obj_pcd = obj_pcd / max_dist
                 obj_color = obj_color / 127.5 - 1
                 if self.with_rgb:
-                    self.data.append((np.concatenate([obj_pcd, obj_color, obj_features], 1), self.cat2int[obj_label]))
+                    self.data.append((np.concatenate([obj_pcd, obj_color], 1), self.cat2int[obj_label]))
                 else:
                     self.data.append((obj_pcd, self.cat2int[obj_label]))
             
@@ -203,7 +203,7 @@ class PcdDataset(Dataset):
                         obj_pcd = obj_pcd / max_dist
                         obj_color = obj_color / 127.5 - 1
                         if self.with_rgb:
-                            self.data.append((np.concatenate([obj_pcd, obj_color, obj_features], 1), self.cat2int[inst_to_label[inst_id]]))
+                            self.data.append((np.concatenate([obj_pcd, obj_color], 1), self.cat2int[inst_to_label[inst_id]]))
                         else:
                             self.data.append((obj_pcd, self.cat2int[inst_to_label[inst_id]]))
 
