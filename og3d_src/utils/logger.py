@@ -9,6 +9,8 @@ import logging
 import math
 
 import tensorboardX
+import wandb
+from types import SimpleNamespace
 
 
 _LOG_FMT = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s'
@@ -114,3 +116,83 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+class WandbLogger(object):
+    """
+    A lightweight wrapper that mimics TensorboardLogger but logs to wandb.
+    """
+
+    def __init__(self):
+        self._run = None          # wandb.Run object
+        self._global_step = 0     # keep manual step counter identical to TB version
+
+    # ------------------------------------------------------------------ #
+    # Initialisation / teardown
+    # ------------------------------------------------------------------ #
+    def create(
+        self,
+        opts: SimpleNamespace
+    ):
+        """
+        Start (or resume) a wandb run.
+
+        Args
+        ----
+        opts : argparse.Namespace or SimpleNamespace  
+            Parsed CLI/config arguments.  `vars(opts)` is saved as the run config.
+
+        entity / project / log_dir / run_name : str | None  
+            Standard wandb.init kwargs.  Any that are None will fall back to the
+            wandb global default or `.netrc` setting.
+
+        **wandb_init_kwargs :
+            Forwarded to `wandb.init(...)` (e.g. `id`, `resume`, `tags`, …).
+        """
+        self._run = wandb.init(
+            entity=opts.entity,
+            project=opts.project,
+            dir=opts.os.path.join(opts.output_dir, 'logs'),
+            name=opts.run_name,
+            config=vars(opts),       # all hyper-parameters & settings
+        )
+
+    def finish(self):
+        """Call this once training is over (optional but recommended)."""
+        if self._run is not None:
+            self._run.finish()
+            self._run = None
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def noop(self, *args, **kwargs):
+        """Returned in place of wandb methods before `create` is called."""
+        return None
+
+    def step(self):
+        """Increase the global step counter (call once per optimisation step)."""
+        self._global_step += 1
+
+    @property
+    def global_step(self):
+        return self._global_step
+
+    # ------------------------------------------------------------------ #
+    # Logging utilities
+    # ------------------------------------------------------------------ #
+    def log_scalar_dict(self, log_dict: dict, prefix: str = ""):
+        self._run.log(log_dict, step=self._global_step)
+
+    # ------------------------------------------------------------------ #
+    # Attribute forwarding
+    # ------------------------------------------------------------------ #
+    def __getattr__(self, name):
+        """
+        • Before `create` is called  →  return a no-op so user code doesn’t crash.  
+        • After  `create` is called  →  forward to the underlying wandb.Run object.
+        """
+        if self._run is None:
+            return self.noop
+        return getattr(self._run, name)
+
+WB_LOGGER = WandbLogger()

@@ -41,11 +41,11 @@ class GTPcdDataset(GTLabelDataset):
             return self.scans[scan_id]['pcds']
         
         pcd_data = torch.load(
-            os.path.join(self.scan_dir, 'pcd_with_global_alignment', '%s.pth'%scan_id)
+            os.path.join(self.scan_dir, 'pcd_with_features_aligned', '%s.pth'%scan_id)
         )
-        points, colors = pcd_data[0], pcd_data[1]
+        points, colors, features = pcd_data[0], pcd_data[1], pcd_data[2]
         colors = colors / 127.5 - 1
-        pcds = np.concatenate([points, colors], 1)
+        pcds = np.concatenate([points, colors, features], 1)
         instance_labels = pcd_data[-1]
         obj_pcds = []
         for i in range(instance_labels.max() + 1):

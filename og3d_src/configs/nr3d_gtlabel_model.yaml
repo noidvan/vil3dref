@@ -1,4 +1,7 @@
 output_dir: ../datasets/referit3d/exprs/gtlabels/exp01
+entity: noidvan-university-of-toronto
+project: Vil3DRef
+name: nr3d_gtlabel_model
 resume_files: null
 
 world_size: 1

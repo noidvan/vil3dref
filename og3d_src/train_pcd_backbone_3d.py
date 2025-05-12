@@ -17,7 +17,7 @@ import torch.nn.functional as F
 import torch.distributed as dist
 from torch.utils.data import Dataset, DataLoader
 
-from utils.logger import LOGGER, TB_LOGGER, AverageMeter, RunningMeter, add_log_to_file
+from utils.logger import LOGGER, WB_LOGGER, AverageMeter, RunningMeter, add_log_to_file
 from utils.save import ModelSaver, save_training_meta
 from utils.misc import NoOp, set_random_seed, set_cuda, wrap_model
 from utils.distributed import all_gather
@@ -269,7 +269,7 @@ def main(opts):
     if default_gpu:
         if not opts.test:
             save_training_meta(opts)
-            TB_LOGGER.create(os.path.join(opts.output_dir, 'logs'))
+            WB_LOGGER.create(opts)
             model_saver = ModelSaver(os.path.join(opts.output_dir, 'ckpts'))
             add_log_to_file(os.path.join(opts.output_dir, 'logs', 'log.txt'))
     else:
@@ -370,20 +370,20 @@ def main(opts):
             lr_this_step = get_lr_sched(global_step, opts)
             for kp, param_group in enumerate(optimizer.param_groups):
                 param_group['lr'] = lr_this_step 
-            TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
+            WB_LOGGER.add_scalar('lr', lr_this_step, global_step)
 
             # log loss
             # NOTE: not gathered across GPUs for efficiency
             avg_metrics['loss'].update(loss.data.item(), n=batch_size)
-            TB_LOGGER.log_scalar_dict({'loss': loss.data.item()})
-            TB_LOGGER.step()
+            WB_LOGGER.log_scalar_dict({'loss': loss.data.item()})
+            WB_LOGGER.step()
 
             # update model params
             if opts.grad_norm != -1:
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     model.parameters(), opts.grad_norm
                 )
-                TB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
+                WB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
             optimizer.step()
             optimizer.zero_grad()
             
@@ -395,7 +395,7 @@ def main(opts):
         if (epoch+1) % opts.val_every_epoch == 0:
             LOGGER.info(f'------Epoch {epoch+1}: start validation------')
             val_log = validate(model, val_dataloader, device)
-            TB_LOGGER.log_scalar_dict(
+            WB_LOGGER.log_scalar_dict(
                 {f'valid/{k}': v.avg for k, v in val_log.items()}
             )
             # model_saver.save(model, epoch+1, optimizer=optimizer)
