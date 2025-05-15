@@ -1,4 +1,4 @@
-output_dir: /home/noidvan/projects/def-hugh/noidvan/logs/exp2d_3r
+output_dir: /home/noidvan/projects/def-hugh/noidvan/logs/exp2d_vil
 resume_file: null
 
 world_size: 1
@@ -7,7 +7,7 @@ local_rank: -1
 rank: -1
 
 seed: 0
-num_epoch: 200
+num_epoch: 100
 batch_size: 16
 weight_decay: 0.01
 optim: adamw
@@ -27,8 +27,8 @@ model:
     sa_n_points: [32, 16, null]
     sa_n_samples: [32, 32, null]
     sa_radii: [0.2, 0.4, null]
-    sa_mlps: [[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
-    # sa_mlps: [[0, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
+    # sa_mlps: [[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
+    sa_mlps: [[11, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
     dropout: 0.1
 
 dataset:

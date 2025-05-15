@@ -1,5 +1,8 @@
-output_dir: ../datasets/referit3d/exprs/gtpcds/exp01
-resume_files: null
+output_dir: /home/noidvan/projects/def-hugh/noidvan/logs/referit3d/exprs/student/nr3d
+entity: noidvan-university-of-toronto
+project: Vil3DRef
+run_name: nr3d_student
+resume_files: [/home/noidvan/projects/def-hugh/noidvan/logs/exp2d_vil/ckpts/model_epoch_98.pt, /home/noidvan/projects/def-hugh/noidvan/exprs_neurips22/gtlabels/nr3d/ckpts/model_epoch_49.pt]
 resume_student: false
 
 world_size: 1
@@ -32,8 +35,8 @@ model:
     sa_n_points: [32, 16, null]
     sa_n_samples: [32, 32, null]
     sa_radii: [0.2, 0.4, null]
-    sa_mlps: [[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
-    # sa_mlps: [[0, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
+    # sa_mlps: [[3, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
+    sa_mlps: [[11, 64, 64, 128], [128, 128, 128, 256], [256, 256, 512, 768]]
     dropout: 0.1
     freeze: true
     freeze_bn: true
@@ -68,15 +71,15 @@ model:
     distill_hiddens: 0.02
 
 dataset:
-  scan_dir: ../datasets/referit3d/scan_data
-  anno_file: ../datasets/referit3d/annotations/bert_tokenized/nr3d.jsonl
-  category_file:  ../datasets/referit3d/annotations/meta_data/scannetv2_raw_categories.json
+  scan_dir: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/scan_data
+  anno_file: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/refer/nr3d.jsonl
+  category_file:  /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/meta_data/scannetv2_raw_categories.json
   # cat2vec_file: null
-  cat2vec_file: ../datasets/referit3d/annotations/meta_data/cat2glove42b.json
+  cat2vec_file: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/meta_data/cat2glove42b.json
 
-  trn_scan_split: ../datasets/referit3d/annotations/splits/scannetv2_train.txt
-  val_scan_split: ../datasets/referit3d/annotations/splits/scannetv2_val.txt
-  tst_scan_split: ../datasets/referit3d/annotations/splits/scannetv2_test.txt
+  trn_scan_split: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/splits/scannetv2_train.txt
+  val_scan_split: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/splits/scannetv2_val.txt
+  tst_scan_split: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/splits/scannetv2_test.txt
 
   num_points: 1024
   max_txt_len: 50

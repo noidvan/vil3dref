@@ -110,15 +110,23 @@ def main(opts):
             len([n for n in checkpoint.keys() if n in model.student_model.state_dict()]),
         )
         
-        model.teacher_model.load_state_dict(checkpoint, strict=False)
+        missing_keys, unexpected_keys = model.teacher_model.load_state_dict(checkpoint, strict=False)
+        print('teacher missing_keys:')
+        print(missing_keys)
+        print('teacher unexpected_keys:')
+        print(unexpected_keys)
         if opts.resume_student:
-            model.student_model.load_state_dict(checkpoint, strict=False)
+            missing_keys, unexpected_keys = model.student_model.load_state_dict(checkpoint, strict=False)
         else:
             student_checkpoint = torch.load(
                 opts.resume_files[0], map_location=lambda storage, loc: storage
             )
             print('resume_student', len(student_checkpoint))
-            model.student_model.load_state_dict(student_checkpoint, strict=False)
+            missing_keys, unexpected_keys = model.student_model.load_state_dict(student_checkpoint, strict=False)
+            print('student missing_keys:')
+            print(missing_keys)
+            print('student unexpected_keys:')
+            print(unexpected_keys)
 
 
     model_cfg = model.config
@@ -204,7 +212,7 @@ def main(opts):
             lr_decay_rate = get_lr_sched_decay_rate(global_step, opts)
             for kp, param_group in enumerate(optimizer.param_groups):
                 param_group['lr'] = lr_this_step = init_lrs[kp] * lr_decay_rate
-            WB_LOGGER.add_scalar('lr', lr_this_step, global_step)
+            WB_LOGGER._run.log({'lr': lr_this_step}, step=global_step)
 
             # log loss
             # NOTE: not gathered across GPUs for efficiency
@@ -219,7 +227,8 @@ def main(opts):
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     model.parameters(), opts.grad_norm
                 )
-                WB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
+                WB_LOGGER._run.log({'grad_norm': grad_norm}, step=global_step)
+
             optimizer.step()
             optimizer.zero_grad()
             # break

@@ -42,11 +42,11 @@ class GTLabelPcdDataset(GTLabelDataset):
         
         pcd_data = torch.load(
             os.path.join(self.scan_dir, 'pcd_with_features_aligned', '%s.pth'%scan_id)
-        )
+        , weights_only=False)
         points, colors, features = pcd_data[0], pcd_data[1], pcd_data[2]
         colors = colors / 127.5 - 1
         pcds = np.concatenate([points, colors, features], 1)
-        instance_labels = pcd_data[-1]
+        instance_labels = pcd_data[-1].astype(int)
         obj_pcds = []
         for i in range(instance_labels.max() + 1):
             mask = instance_labels == i     # time consuming
@@ -208,10 +208,10 @@ def gtlabelpcd_collate_fn(data):
     outs['txt_lens'] = torch.LongTensor(outs['txt_lens'])
     outs['txt_masks'] = gen_seq_masks(outs['txt_lens'])
 
-    outs['obj_gt_fts'] = pad_tensors(outs['obj_gt_fts'], lens=outs['obj_lens'])
-    outs['obj_fts'] = pad_tensors(outs['obj_fts'], lens=outs['obj_lens'], pad_ori_data=True)
-    outs['obj_locs'] = pad_tensors(outs['obj_locs'], lens=outs['obj_lens'], pad=0)
-    outs['obj_colors'] = pad_tensors(outs['obj_colors'], lens=outs['obj_lens'], pad=0)
+    outs['obj_gt_fts'] = pad_tensors(outs['obj_gt_fts'], lens=outs['obj_lens']).float()
+    outs['obj_fts'] = pad_tensors(outs['obj_fts'], lens=outs['obj_lens'], pad_ori_data=True).float()
+    outs['obj_locs'] = pad_tensors(outs['obj_locs'], lens=outs['obj_lens'], pad=0).float()
+    outs['obj_colors'] = pad_tensors(outs['obj_colors'], lens=outs['obj_lens'], pad=0).float()
     outs['obj_lens'] = torch.LongTensor(outs['obj_lens'])
     outs['obj_masks'] = gen_seq_masks(outs['obj_lens'])
 

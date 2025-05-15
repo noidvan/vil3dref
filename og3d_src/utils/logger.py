@@ -10,6 +10,7 @@ import math
 
 import tensorboardX
 import wandb
+import os
 from types import SimpleNamespace
 
 
@@ -151,7 +152,7 @@ class WandbLogger(object):
         self._run = wandb.init(
             entity=opts.entity,
             project=opts.project,
-            dir=opts.os.path.join(opts.output_dir, 'logs'),
+            dir=os.path.join(opts.output_dir, 'logs'),
             name=opts.run_name,
             config=vars(opts),       # all hyper-parameters & settings
         )

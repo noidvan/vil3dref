@@ -1,4 +1,7 @@
-output_dir: ../datasets/referit3d/exprs/gtlabels/exp01
+output_dir: /home/noidvan/projects/def-hugh/noidvan/logs/referit3d/exprs/teacher/sr3d
+entity: noidvan-university-of-toronto
+project: Vil3DRef
+run_name: sr3d_teacher
 resume_files: null
 
 world_size: 1
@@ -55,14 +58,14 @@ model:
     txt_clf: 1
 
 dataset:
-  scan_dir: ../datasets/referit3d/scan_data
-  anno_file: ../datasets/referit3d/annotations/bert_tokenized/sr3d.jsonl
-  category_file:  ../datasets/referit3d/annotations/meta_data/scannetv2_raw_categories.json
-  cat2vec_file: ../datasets/referit3d/annotations/meta_data/cat2glove42b.json
+  scan_dir: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/scan_data
+  anno_file: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/refer/sr3d.jsonl
+  category_file: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/meta_data/scannetv2_raw_categories.json
+  cat2vec_file: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/meta_data/cat2glove42b.json
 
-  trn_scan_split: ../datasets/referit3d/annotations/splits/scannetv2_train.txt
-  val_scan_split: ../datasets/referit3d/annotations/splits/scannetv2_val.txt
-  tst_scan_split: ../datasets/referit3d/annotations/splits/scannetv2_test.txt
+  trn_scan_split: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/splits/scannetv2_train.txt
+  val_scan_split: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/splits/scannetv2_val.txt
+  tst_scan_split: /home/noidvan/projects/def-hugh/noidvan/datasets/3DVista/scanfamily/annotations/splits/scannetv2_test.txt
 
   max_txt_len: 50
   max_obj_len: 80

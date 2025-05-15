@@ -17,7 +17,7 @@ import torch.nn.functional as F
 import torch.distributed as dist
 from torch.utils.data import Dataset, DataLoader
 
-from utils.logger import LOGGER, WB_LOGGER, AverageMeter, RunningMeter, add_log_to_file
+from utils.logger import LOGGER, TB_LOGGER, AverageMeter, RunningMeter, add_log_to_file
 from utils.save import ModelSaver, save_training_meta
 from utils.misc import NoOp, set_random_seed, set_cuda, wrap_model
 from utils.distributed import all_gather
@@ -27,27 +27,27 @@ from optim.misc import build_optimizer
 
 from parser import load_parser, parse_with_config
 
-# from model.obj_encoder import PcdObjEncoder
-# from model.referit3d_net import get_mlp_head
+from model.obj_encoder import PcdObjEncoder
+from model.referit3d_net import get_mlp_head
 
 from model.backbone.point_net_pp import PointNetPP
 from model.basic_modules import (_get_clones, calc_pairwise_locs,
                                         get_mlp_head, init_weights, get_mixup_function)
 
-# class PcdClassifier(nn.Module):
-#     def __init__(self, config):
-#         super().__init__()
-#         self.obj_encoder = PcdObjEncoder(config.obj_encoder)
-#         self.obj3d_clf_pre_head = get_mlp_head(
-#             config.hidden_size, config.hidden_size, 
-#             config.num_obj_classes, dropout=config.dropout
-#         )
+class PcdClassifier(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.obj_encoder = PcdObjEncoder(config.obj_encoder)
+        self.obj3d_clf_pre_head = get_mlp_head(
+            config.hidden_size, config.hidden_size, 
+            config.num_obj_classes, dropout=config.dropout
+        )
     
-#     def forward(self, obj_pcds):
-#         obj_embeds = self.obj_encoder.pcd_net(obj_pcds)
-#         obj_embeds = self.obj_encoder.dropout(obj_embeds)
-#         logits = self.obj3d_clf_pre_head(obj_embeds)
-#         return logits
+    def forward(self, obj_pcds):
+        obj_embeds = self.obj_encoder.pcd_net(obj_pcds)
+        obj_embeds = self.obj_encoder.dropout(obj_embeds)
+        logits = self.obj3d_clf_pre_head(obj_embeds)
+        return logits
 
 class PointTokenizeEncoder(nn.Module):
     def __init__(self, backbone='pointnet++', hidden_size=768, path=None, freeze_feature=False,
@@ -269,7 +269,7 @@ def main(opts):
     if default_gpu:
         if not opts.test:
             save_training_meta(opts)
-            WB_LOGGER.create(opts)
+            TB_LOGGER.create(os.path.join(opts.output_dir, 'logs'))
             model_saver = ModelSaver(os.path.join(opts.output_dir, 'ckpts'))
             add_log_to_file(os.path.join(opts.output_dir, 'logs', 'log.txt'))
     else:
@@ -279,7 +279,7 @@ def main(opts):
 
     # Prepare model
     model_config = EasyDict(opts.model)
-    model = PointTokenizeEncoder()
+    model = PcdClassifier(model_config)
     model = wrap_model(model, device, opts.local_rank)
 
     num_weights, num_trainable_weights = 0, 0
@@ -306,7 +306,6 @@ def main(opts):
         keep_background=data_cfg.keep_background,
         og3d_subset_file=data_cfg.og3d_subset_file,
         with_rgb=data_cfg.with_rgb,
-        rscan_dir=data_cfg.rscan_dir,
     )
     val_dataset = PcdDataset(
         data_cfg.val_scan_split, data_cfg.scan_dir, data_cfg.category_file,
@@ -370,20 +369,20 @@ def main(opts):
             lr_this_step = get_lr_sched(global_step, opts)
             for kp, param_group in enumerate(optimizer.param_groups):
                 param_group['lr'] = lr_this_step 
-            WB_LOGGER.add_scalar('lr', lr_this_step, global_step)
+            TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
 
             # log loss
             # NOTE: not gathered across GPUs for efficiency
             avg_metrics['loss'].update(loss.data.item(), n=batch_size)
-            WB_LOGGER.log_scalar_dict({'loss': loss.data.item()})
-            WB_LOGGER.step()
+            TB_LOGGER.log_scalar_dict({'loss': loss.data.item()})
+            TB_LOGGER.step()
 
             # update model params
             if opts.grad_norm != -1:
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     model.parameters(), opts.grad_norm
                 )
-                WB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
+                TB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
             optimizer.step()
             optimizer.zero_grad()
             
@@ -395,7 +394,7 @@ def main(opts):
         if (epoch+1) % opts.val_every_epoch == 0:
             LOGGER.info(f'------Epoch {epoch+1}: start validation------')
             val_log = validate(model, val_dataloader, device)
-            WB_LOGGER.log_scalar_dict(
+            TB_LOGGER.log_scalar_dict(
                 {f'valid/{k}': v.avg for k, v in val_log.items()}
             )
             # model_saver.save(model, epoch+1, optimizer=optimizer)
